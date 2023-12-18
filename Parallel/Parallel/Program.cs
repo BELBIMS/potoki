@@ -1,62 +1,54 @@
-﻿internal class Program
+// Класс программы для вычисления суммы квадратов и нормы вектора
+class Program
 {
-    public static double[] a;
-    public static int th;
-    private static void Main(string[] args)
+    static void Main(string[] args)
     {
-        int N = int.Parse(Console.ReadLine());
-        th = int.Parse(Console.ReadLine());
-        Random rnd = new Random();
-        a = new double[N];
-        for (int i = 0; i < a.Length; i++)
-        {
-            a[i] = rnd.Next(1, 100);
-        }
+        var vector = new double[] { 2, 3, 4, 5, 6 }; // Вектор
+
+        var taskCount = 2; // Число параллельных задач
+
+        var sum = CalculateSum(vector, taskCount); // Параллельный подсчет суммы
+
+        var norm = Math.Sqrt(sum); // Вычисление нормы вектора
+        Console.WriteLine("Сумма квадратов: " + sum + "; Норма вектора: " + norm); // Вывод результатов
+
         DateTime dt1, dt2;
         dt1 = DateTime.Now;
-        Parallel.For(0, th, i =>
-        {
-            Run(th, i);
-        });
-
-
+        // Вызов вычислительной процедуры
         dt2 = DateTime.Now;
         TimeSpan ts = dt2 - dt1;
-        Console.WriteLine("Total time: {0}", ts.TotalMilliseconds);
+        Console.WriteLine("Total time: {0}", ts.TotalMilliseconds); // Вывод времени выполнения
+    }
+
+    
+    // Метод для вычисления суммы квадратов с использованием параллельных задач
+    private static double CalculateSum(double[] vector, int taskCount)
+    {
+        var len = vector.Length;
+
+        // Не может быть задач больше числа элементов вектора
+        if (taskCount > len)
+            throw new ArgumentException();
+
+        var step = (len + 1) / taskCount; // Интервал для суммы
+        var tasks = new Task<double>[taskCount];
+        
+        // Запуск параллельных задач для подсчета суммы
+        for (var i = 0; i < taskCount; i++)
+        {
+            tasks[i] = Task<double>.Factory.StartNew((obj) => Sum(vector, (int)obj * step, ((int)obj + 1) * step - 1), i);
+        }
+        Task.WaitAll(tasks); // Ожидание завершения всех задач
+        var sum = tasks.Select(x => x.Result).Sum(); // Вычисление общей суммы
+        return sum;
     }
 
 
 
-    public static void Run(int th, int nember)
+    // Метод для подсчета суммы квадратов элементов вектора
+    static double Sum(IEnumerable<double> vector, int index1, int index2)
     {
-        int x = 0;
-        int y = 0;
-        if (nember == 1)
-        {
-            x = 0;
-            y = (a.Length - 1) / th;
-        }
-        if (nember != 1 && nember != th)
-        {
-            x = (a.Length - 1) / th * nember + 1;
-            y = (a.Length - 1) / th * (nember + 1);
-
-        }
-        if (nember == th)
-        {
-            x = (a.Length - 1) / th * (th - 1) + 1;
-            y = a.Length - 1;
-        }
-        while (x <= y)
-        {
-            a[x] = Math.Pow(a[x], 1.789);
-            x++;
-            for (int i = 0; i < 100; i++)
-            {
-                int f = 0;
-                f += i;
-            }
-        }
-
+        index2 = index2 >= vector.Count() ? vector.Count() : index2;
+        return vector.Skip(index1).Take(index2 - index1 + 1).Select(x => x * x).Sum();
     }
 }
